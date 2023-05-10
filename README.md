@@ -8,8 +8,7 @@ No, there is nothing hiding in the DLL either.
 I encourage you to open Fiddler and see for yourself that it makes 0 requests
 apart from the Celery settings file, which is a text file
 
-If you think it's stealing cookies, I'm flabbergasted but I don't own GitHub
-therefore I can't view your account cookies which are residentially locked
+If you think it's stealing cookies from reading a text file, I'm flabbergasted
 
 # Compiling
 
