@@ -11,3 +11,7 @@ apart from the Celery settings file, which is a text file on my GitHub.
 If you think it's stealing cookies, I'm flabbergasted but I don't own GitHub
 therefore I can't view your account cookies which are residentially locked
 
+# Compiling
+
+You will need a bunch of VS packages to compile this properly.
+They can all be installed or I will include those separately at another URL
