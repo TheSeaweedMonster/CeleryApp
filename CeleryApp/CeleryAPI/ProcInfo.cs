@@ -2,6 +2,7 @@ using EyeStepPackage;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Text;
 
 public class Util
 {
@@ -19,26 +20,29 @@ public class Util
                 {
                     if (process.MainModule != null)
                     {
-                        if (process.MainModule.ModuleName.Length > 0)
+                        if (process.MainModule.ModuleName != null)
                         {
-                            var handle = Imports.OpenProcess(Imports.PROCESS_ALL_ACCESS, false, process.Id);
-                            if (handle != 0)
+                            if (process.MainModule.ModuleName.Length > 0)
                             {
-                                openedHandles.Add(handle);
-
-                                Int32 baseModule = process.MainModule.BaseAddress.ToInt32();
-                                Int32 baseModuleSize = process.MainModule.ModuleMemorySize;
-
-                                if (baseModule != 0 && baseModuleSize > 0)
+                                var handle = Imports.OpenProcess(Imports.PROCESS_ALL_ACCESS, false, process.Id);
+                                if (handle != 0)
                                 {
-                                    var procInfo = new ProcInfo();
-                                    procInfo.processRef = process;
-                                    procInfo.baseModule = baseModule;
-                                    procInfo.handle = handle;
-                                    procInfo.processId = process.Id;
-                                    procInfo.processName = processName;
-                                    procInfo.windowName = "";
-                                    procList.Add(procInfo);
+                                    openedHandles.Add(handle);
+
+                                    Int32 baseModule = process.MainModule.BaseAddress.ToInt32();
+                                    Int32 baseModuleSize = process.MainModule.ModuleMemorySize;
+
+                                    if (baseModule != 0 && baseModuleSize > 0)
+                                    {
+                                        var procInfo = new ProcInfo();
+                                        procInfo.processRef = process;
+                                        procInfo.baseModule = baseModule;
+                                        procInfo.handle = handle;
+                                        procInfo.processId = process.Id;
+                                        procInfo.processName = processName;
+                                        procInfo.windowName = "";
+                                        procList.Add(procInfo);
+                                    }
                                 }
                             }
                         }
@@ -46,8 +50,13 @@ public class Util
 
                 }
             }
-            catch (System.ComponentModel.Win32Exception e)
+            catch (System.NullReferenceException ex)
             {
+                continue;
+            }
+            catch (System.Exception ex)
+            {
+                continue;
             }
         }
 
@@ -280,15 +289,9 @@ public class Util
                     var bytes = readBytes(at, 512);
                     for (int i = 0; i < bytes.Length; i += 2)
                     {
-                        char c = Convert.ToChar(BitConverter.ToUInt16(new byte[2] { bytes[0], bytes[1] }, 0));
-                        if (c == 0)
-                        {
-                            at = 0;
-                            break;
-                        }
-                        result += c;
+                        if (bytes[i] == 0 && bytes[i + 1] == 0) { at = 0; break; }
+                        result += Encoding.Unicode.GetString(new byte[2] { bytes[i], bytes[i + 1] }, 0, 2); //BitConverter.ToChar(new byte[2] { bytes[i], bytes[i + 1] }, 0);
                     }
-
                     at += 512;
                 }
             }
@@ -297,9 +300,7 @@ public class Util
                 var bytes = readBytes(at, count * 2);
 
                 for (int i = 0; i < bytes.Length; i += 2)
-                {
-                    result += Convert.ToChar(BitConverter.ToUInt16(new byte[2] { bytes[i], bytes[i + 1] }, 0));
-                }
+                    result += Encoding.Unicode.GetString(new byte[2] { bytes[i], bytes[i + 1] }, 0, 2); //BitConverter.ToChar(new byte[2] { bytes[i], bytes[i + 1] }, 0);
             }
 
             return result;

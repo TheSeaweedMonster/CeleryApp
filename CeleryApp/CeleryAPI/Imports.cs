@@ -1,4 +1,5 @@
 using Microsoft.Win32.SafeHandles;
+using System;
 using System.IO;
 using System.Runtime.InteropServices;
 
@@ -208,9 +209,11 @@ public class Imports
 				InitializeOutStream();
 				InitializeInStream();
 			}
-		}
 
-		static public void Clear()
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
+        }
+
+        static public void Clear()
 		{
 			System.Console.Write("\n\n");
         }

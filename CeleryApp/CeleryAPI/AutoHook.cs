@@ -362,7 +362,6 @@ namespace Injector
                 }
             }
 
-            Console.WriteLine("Manual mapping...");
             mapResult = MapInject.ManualMap(pinfo.processRef, AppDomain.CurrentDomain.BaseDirectory + "dll/" + injectFileName);
 
             if (mapResult)
