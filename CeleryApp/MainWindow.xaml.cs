@@ -29,6 +29,7 @@ using MaterialDesignExtensions.Controls;
 using MaterialDesignThemes.Wpf;
 using WK.Libraries.BetterFolderBrowserNS.Helpers;
 using System.Web.Configuration;
+using System.Text;
 
 #endregion
 
@@ -276,7 +277,7 @@ namespace CeleryApp
 
             DispatcherTimer updateTimer = new DispatcherTimer();
             updateTimer.Tick += new EventHandler(updateTimer_Tick);
-            updateTimer.Interval = new TimeSpan(0, 0, 0, 0, 10);
+            updateTimer.Interval = new TimeSpan(0, 0, 0, 0, 5);
             updateTimer.Start();
 
             OutputWindow.Visibility = Visibility.Hidden;
@@ -296,22 +297,18 @@ namespace CeleryApp
                 if (!Directory.Exists(System.IO.Path.GetTempPath() + "celery"))
                 {
                     try { Directory.CreateDirectory(System.IO.Path.GetTempPath() + "celery"); }
-                    catch (Exception ex)
-                    {
+                    catch (Exception ex) {
                         MessageBox.Show("An exception occurred. Please restart Celery. Error message: " + ex.Message);
                     }
                 }
 
-                if (File.Exists(System.IO.Path.GetTempPath() + "celery\\celeryhome.txt"))
-                {
-                    try {
-                        File.WriteAllText(System.IO.Path.GetTempPath() + "celery\\celeryhome.txt", AppDomain.CurrentDomain.BaseDirectory + "dll\\");
-                    }  catch (Exception ex)
-                    {  }
-                }
-                else
-                {
-                    FileHelp.checkCreateFile(System.IO.Path.GetTempPath() + "celery\\celeryhome.txt", AppDomain.CurrentDomain.BaseDirectory + "dll\\");
+                if (!File.Exists(System.IO.Path.GetTempPath() + "celery\\celeryhome.txt"))
+                    FileHelp.checkCreateFile(System.IO.Path.GetTempPath() + "celery\\celeryhome.txt");
+
+                try {
+                    File.WriteAllText(System.IO.Path.GetTempPath() + "celery\\celeryhome.txt", AppDomain.CurrentDomain.BaseDirectory + "dll\\", Encoding.Unicode);
+                }  catch (Exception ex) {
+                    MessageBox.Show("An exception occurred. Please restart Celery. Error message: " + ex.Message);
                 }
 
                 // Check if the user has a previous download of celery before
@@ -704,28 +701,31 @@ namespace CeleryApp
                 // Construct list of inputs in order to send them through a single SendInput call at the end.
                 List<INPUT> inputs = new List<INPUT>();
 
-                // INPUT is a multi-purpose structure which can be used 
-                // for synthesizing keystrokes, mouse motions, and button clicks.
-                INPUT input = new INPUT
+                // First send a key down, then a key up.
+                foreach (bool keyUp in new bool[] { false, true })
                 {
-                    // Need a keyboard event.
-                    type = INPUT_KEYBOARD,
-                    u = new InputUnion
+                    // INPUT is a multi-purpose structure which can be used 
+                    // for synthesizing keystrokes, mouse motions, and button clicks.
+                    INPUT input = new INPUT
                     {
-                        // KEYBDINPUT will contain all the information for a single keyboard event
-                        // (more precisely, for a single key-down or key-up).
-                        ki = new KEYBDINPUT
+                        // Need a keyboard event.
+                        type = INPUT_KEYBOARD,
+                        u = new InputUnion
                         {
-                            // Virtual-key code must be 0 since we are sending Unicode characters.
-                            wVk = 0,
-                            wScan = (ushort)c, // The Unicode character to be sent.
-                            dwFlags = KEYEVENTF_UNICODE,
-                            dwExtraInfo = GetMessageExtraInfo(),
+                            // KEYBDINPUT will contain all the information for a single keyboard event
+                            // (more precisely, for a single key-down or key-up).
+                            ki = new KEYBDINPUT
+                            {
+                                // Virtual-key code must be 0 since we are sending Unicode characters.
+                                wVk = 0,
+                                wScan = (ushort)c, // The Unicode character to be sent.
+                                dwFlags = KEYEVENTF_UNICODE | (keyUp ? KEYEVENTF_KEYUP : 0),
+                                dwExtraInfo = GetMessageExtraInfo(),
+                            }
                         }
-                    }
-                };
-
-                inputs.Add(input);
+                    };
+                    inputs.Add(input);
+                }
 
                 if (GetForegroundWindow() == (uint)Imports.FindWindow(null, "Roblox"))
                     SendInput((uint)inputs.Count, inputs.ToArray(), Marshal.SizeOf(typeof(INPUT)));
@@ -736,28 +736,32 @@ namespace CeleryApp
                 // Construct list of inputs in order to send them through a single SendInput call at the end.
                 List<INPUT> inputs = new List<INPUT>();
 
-                // INPUT is a multi-purpose structure which can be used 
-                // for synthesizing keystrokes, mouse motions, and button clicks.
-                INPUT input = new INPUT
+                // First send a key down, then a key up.
+                foreach (bool keyUp in new bool[] { true })
                 {
-                    // Need a keyboard event.
-                    type = INPUT_KEYBOARD,
-                    u = new InputUnion
+                    // INPUT is a multi-purpose structure which can be used 
+                    // for synthesizing keystrokes, mouse motions, and button clicks.
+                    INPUT input = new INPUT
                     {
-                        // KEYBDINPUT will contain all the information for a single keyboard event
-                        // (more precisely, for a single key-down or key-up).
-                        ki = new KEYBDINPUT
+                        // Need a keyboard event.
+                        type = INPUT_KEYBOARD,
+                        u = new InputUnion
                         {
-                            // Virtual-key code must be 0 since we are sending Unicode characters.
-                            wVk = 0,
-                            wScan = (ushort)c, // The Unicode character to be sent.
-                            dwFlags = KEYEVENTF_UNICODE | KEYEVENTF_KEYUP,
-                            dwExtraInfo = GetMessageExtraInfo(),
+                            // KEYBDINPUT will contain all the information for a single keyboard event
+                            // (more precisely, for a single key-down or key-up).
+                            ki = new KEYBDINPUT
+                            {
+                                // Virtual-key code must be 0 since we are sending Unicode characters.
+                                wVk = 0,
+                                wScan = (ushort)c, // The Unicode character to be sent.
+                                dwFlags = KEYEVENTF_UNICODE | KEYEVENTF_KEYUP,
+                                dwExtraInfo = GetMessageExtraInfo(),
+                            }
                         }
-                    }
+                    };
+                    inputs.Add(input);
                 };
 
-                inputs.Add(input);
                 
                 if (GetForegroundWindow() == (uint)Imports.FindWindow(null, "Roblox"))
                     SendInput((uint)inputs.Count, inputs.ToArray(), Marshal.SizeOf(typeof(INPUT)));
@@ -964,7 +968,10 @@ namespace CeleryApp
                     var printPointer = pinfo.readInt32(dataStart + 8);
                     if (printSize > 0)
                     {
-                        var str = pinfo.readString(printPointer, printSize);
+                        var b = pinfo.readBytes(printPointer, printSize);
+                        string str = "";
+                        for (int i = 0; i < b.Length; i++)
+                            str += (char)b[i];
                         Console.Out.WriteLine(str);
                     }
                 }
@@ -974,8 +981,9 @@ namespace CeleryApp
                     var printPointer = pinfo.readInt32(dataStart + 8);
                     if (printSize > 0)
                     {
-                        var str = pinfo.readWString(printPointer, printSize);
-                        Console.Out.WriteLine(str);
+                        string x = Encoding.Unicode.GetString(pinfo.readBytes(printPointer, printSize * 2), 0, printSize * 2);
+                        //Console.Out.Write(x.ToCharArray());
+                        Console.Out.WriteLine(x);
                     }
                 }
                 else if (transmitType == 3) // string READ_FILE (wstring filePath)
@@ -989,12 +997,21 @@ namespace CeleryApp
 
                         if (File.Exists(filePath))
                         {
-                            var contents = File.ReadAllText(filePath);
-                            var contentsPointer = Imports.VirtualAllocEx(pinfo.handle, 0, contents.Length + 4, Imports.MEM_COMMIT | Imports.MEM_RESERVE, Imports.PAGE_READWRITE);
-                            
-                            pinfo.writeString(contentsPointer, contents);
-                            pinfo.writeInt32(dataStart + 12, contents.Length);
-                            pinfo.writeInt32(dataStart + 16, contentsPointer);
+                            try
+                            {
+                                // UTF-8 encoded string
+                                var contents = File.ReadAllBytes(filePath);
+                                var contentsPointer = Imports.VirtualAllocEx(pinfo.handle, 0, contents.Length + 4, Imports.MEM_COMMIT | Imports.MEM_RESERVE, Imports.PAGE_READWRITE);
+
+                                pinfo.writeBytes(contentsPointer, contents);
+                                pinfo.writeInt32(dataStart + 12, contents.Length);
+                                pinfo.writeInt32(dataStart + 16, contentsPointer);
+                            }
+                            catch (Exception ex)
+                            {
+                                pinfo.writeInt32(dataStart + 12, 0);
+                                pinfo.writeInt32(dataStart + 16, 0);
+                            }
                         }
                         else
                         {
@@ -1010,17 +1027,23 @@ namespace CeleryApp
                     if (filePathSize > 0)
                     {
                         var filePath = pinfo.readWString(filePathPointer, filePathSize);
-                        Console.Out.WriteLine("Reading file path: " + filePath);
-
+                        
                         if (File.Exists(filePath))
                         {
-                            Console.Out.WriteLine("File eixsts");
-                            var contents = File.ReadAllText(filePath);
-                            var contentsPointer = Imports.VirtualAllocEx(pinfo.handle, 0, (contents.Length * 2) + 4, Imports.MEM_COMMIT | Imports.MEM_RESERVE, Imports.PAGE_READWRITE);
-
-                            pinfo.writeWString(contentsPointer, contents);
-                            pinfo.writeInt32(dataStart + 12, contents.Length);
-                            pinfo.writeInt32(dataStart + 16, contentsPointer);
+                            try
+                            {
+                                var contents = File.ReadAllText(filePath, Encoding.Unicode);
+                                var contentsPointer = Imports.VirtualAllocEx(pinfo.handle, 0, (contents.Length * 2) + 4, Imports.MEM_COMMIT | Imports.MEM_RESERVE, Imports.PAGE_READWRITE);
+                                
+                                pinfo.writeWString(contentsPointer, contents);
+                                pinfo.writeInt32(dataStart + 12, contents.Length);
+                                pinfo.writeInt32(dataStart + 16, contentsPointer);
+                            }
+                            catch (Exception ex)
+                            {
+                                pinfo.writeInt32(dataStart + 12, 0);
+                                pinfo.writeInt32(dataStart + 16, 0);
+                            }
                         }
                         else
                         {
@@ -1229,20 +1252,20 @@ namespace CeleryApp
                 }
                 else if (transmitType == 17) // setclipboard (wstring data)
                 {
-                    var printSize = pinfo.readInt32(dataStart + 4);
-                    var printPointer = pinfo.readInt32(dataStart + 8);
-                    if (printSize > 0)
+                    var dataSize = pinfo.readInt32(dataStart + 4);
+                    var dataPointer = pinfo.readInt32(dataStart + 8);
+                    if (dataSize > 0)
                     {
-                        var str = pinfo.readWString(printPointer, printSize);
-                        Clipboard.SetText(str);
+                        var data = pinfo.readBytes(dataPointer, dataSize);
+                        Clipboard.SetText(Encoding.UTF8.GetString(data));
                     }
                 }
                 else if (transmitType == 18) // wstring getclipboard
                 {
-                    var contents = Clipboard.GetText();
+                    var contents = Encoding.UTF8.GetBytes(Clipboard.GetText());
                     var contentsPointer = Imports.VirtualAllocEx(pinfo.handle, 0, (contents.Length * 2) + 4, Imports.MEM_COMMIT | Imports.MEM_RESERVE, Imports.PAGE_READWRITE);
 
-                    pinfo.writeWString(contentsPointer, contents);
+                    pinfo.writeBytes(contentsPointer, contents);
                     pinfo.writeInt32(dataStart + 4, contents.Length);
                     pinfo.writeInt32(dataStart + 8, contentsPointer);
                 }
@@ -1827,6 +1850,10 @@ namespace CeleryApp
                 }
             }
             
+            if (!injected)
+            {
+                CreateNotification("Please use the Roblox App from Microsoft Store");
+            }
         }
 
         private async void Execute_Click(object sender, RoutedEventArgs e)
@@ -1875,7 +1902,7 @@ namespace CeleryApp
         private void NewTab_Click(object sender, RoutedEventArgs e)
         {
             //TabCount = TabControlShit.Items.Count;
-            if (TabCount < 6)
+            if (TabCount <= 50)
             {
                 TabCount++;
                 NewTab("New Tab" + TabCount);
@@ -1890,8 +1917,11 @@ namespace CeleryApp
 
         private void CloseTab_Click(object sender, RoutedEventArgs e)
         {
-            TabCount--;
-            TabControlShit.Items.Remove(TabControlShit.SelectedItem);
+            if (TabCount > 0)
+            {
+                TabCount--;
+                TabControlShit.Items.Remove(TabControlShit.SelectedItem);
+            }
         }
 
         //----------------------------- TABCONTROL -----------------------------//
